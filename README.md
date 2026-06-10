@@ -65,9 +65,10 @@ docker-compose down -v
 
 ---
 
-## ☸️ Deploy con Kubernetes
+## ☸️ Deploy con Kubernetes (Docker Desktop)
 
-La cartella `k8s/` contiene tutti i manifest per deployare l'applicazione su un cluster Kubernetes locale (Minikube o Kind) o su cloud (GKE, EKS, AKS).
+La cartella `k8s/` contiene tutti i manifest per deployare l'applicazione su un cluster Kubernetes.
+La guida usa **Docker Desktop con Kubernetes integrato** (abilitabile in Impostazioni → Kubernetes → Enable Kubernetes).
 
 ### Struttura k8s/
 
@@ -90,31 +91,59 @@ k8s/
     └── pvc.yaml             → PersistentVolumeClaim per i dati
 ```
 
-### 1. Prepara i secrets
+### 1. Abilita Kubernetes in Docker Desktop
+
+1. Apri **Docker Desktop**
+2. Vai in **Settings → Kubernetes**
+3. Spunta **Enable Kubernetes** e clicca **Apply & Restart**
+4. Attendi che la pallina in basso a sinistra diventi verde (Kubernetes running)
+
+Verifica che il contesto sia corretto:
+```bash
+kubectl config use-context docker-desktop
+kubectl get nodes
+```
+
+### 2. Installa l'Ingress Controller
+
+L'Ingress consente di raggiungere frontend e backend da `http://localhost`. Va installato una volta sola.
 
 ```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml
+```
+
+Attendi che il controller sia pronto:
+```bash
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=120s
+```
+
+### 3. Prepara i secrets
+
+```bash
+# Windows PowerShell
+Copy-Item k8s\secrets.yaml.example k8s\secrets.yaml
+
+# Mac / Linux
 cp k8s/secrets.yaml.example k8s/secrets.yaml
 ```
 
-Modifica `k8s/secrets.yaml` inserendo le tue credenziali reali.
+Apri `k8s/secrets.yaml` e inserisci le tue credenziali reali.
 
-> `secrets.yaml` è nel `.gitignore` e non viene committato nel repository.
+> `secrets.yaml` è nel `.gitignore` e non viene mai committato nel repository.
 
-### 2. Build delle immagini Docker
+### 4. Build delle immagini Docker
 
-Kubernetes usa `imagePullPolicy: Never`, quindi le immagini devono essere disponibili localmente nel cluster.
+Con Docker Desktop il daemon Docker è condiviso con Kubernetes: basta fare il build normalmente, le immagini sono già visibili al cluster.
 
-Con **Minikube**:
 ```bash
-eval $(minikube docker-env)   # su Linux/Mac
-# oppure su Windows PowerShell:
-minikube docker-env | Invoke-Expression
-
 docker build -t ticket-backend:1.0.0 ./ticketing-backend
 docker build -t ticket-frontend:1.0.0 ./ticketing-frontend
 ```
 
-### 3. Deploy sul cluster
+### 5. Deploy sul cluster
 
 ```bash
 kubectl apply -f k8s/namespace.yaml
@@ -125,27 +154,48 @@ kubectl apply -f k8s/backend/
 kubectl apply -f k8s/frontend/
 ```
 
-### 4. Verifica lo stato dei pod
+### 6. Verifica lo stato dei pod
 
 ```bash
 kubectl get pods -n ticket-app
 ```
 
-Tutti i pod devono risultare `Running` prima di accedere all'applicazione.
+Attendi che tutti i pod risultino `Running`:
 
-### 5. Accesso con Minikube
-
-```bash
-minikube addons enable ingress
-minikube tunnel
+```
+NAME                               READY   STATUS    
+postgres-0                         1/1     Running   
+ticket-backend-xxxxxxxxx-xxxxx     1/1     Running   
+ticket-frontend-xxxxxxxxx-xxxxx    1/1     Running   
 ```
 
-Poi apri **http://localhost** nel browser.
+> Il backend impiega circa 60-90 secondi per compilare e avviarsi al primo avvio.
+
+### 7. Accesso all'applicazione
+
+Apri **http://localhost** nel browser.
+
+- `/`    → Frontend Angular
+- `/api` → Backend Spring Boot
 
 ### Eliminare il deploy
 
 ```bash
 kubectl delete namespace ticket-app
+```
+
+### Ricrearlo da zero (rebuild)
+
+```bash
+docker build -t ticket-backend:1.0.0 ./ticketing-backend
+docker build -t ticket-frontend:1.0.0 ./ticketing-frontend
+kubectl delete namespace ticket-app
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secrets.yaml
+kubectl apply -f k8s/postgres/
+kubectl apply -f k8s/backend/
+kubectl apply -f k8s/frontend/
 ```
 
 ---
