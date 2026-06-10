@@ -15,11 +15,138 @@ ticketing-frontend/   → Angular 17 (standalone components)
 
 ## 🗄️ Prerequisiti
 
+### Avvio manuale (locale)
 - **Java 17+**
 - **Maven 3.8+**
 - **Node.js 18+** e **npm**
 - **PostgreSQL 15+**
 - **Angular CLI 17** → `npm install -g @angular/cli@17`
+
+### Avvio con Docker / Kubernetes
+- **Docker Desktop** (include Docker Compose)
+- **kubectl** + **Minikube** (solo per Kubernetes)
+
+---
+
+## 🐳 Avvio con Docker Compose (consigliato)
+
+Il modo più rapido per avviare l'intero stack senza installare nulla di aggiuntivo.
+Docker Compose avvia automaticamente **PostgreSQL**, **Backend** e **Frontend** in container separati.
+
+### Prerequisiti
+- Docker Desktop installato e avviato
+
+### Avvio
+
+```bash
+docker-compose up --build
+```
+
+| Servizio   | URL                        |
+|------------|----------------------------|
+| Frontend   | http://localhost            |
+| Backend    | http://localhost:8080       |
+| PostgreSQL | localhost:5432              |
+
+### Fermare i container
+
+```bash
+docker-compose down
+```
+
+Per eliminare anche i volumi (dati del database):
+
+```bash
+docker-compose down -v
+```
+
+> Al primo avvio il backend impiega circa 60-90 secondi per compilare e partire.
+> Il frontend è pronto non appena il backend ha completato lo startup.
+
+---
+
+## ☸️ Deploy con Kubernetes
+
+La cartella `k8s/` contiene tutti i manifest per deployare l'applicazione su un cluster Kubernetes locale (Minikube o Kind) o su cloud (GKE, EKS, AKS).
+
+### Struttura k8s/
+
+```
+k8s/
+├── namespace.yaml           → Namespace dedicato "ticket-app"
+├── configmap.yaml           → Variabili di configurazione (non sensibili)
+├── secrets.yaml.example     → Template per le credenziali (copiare in secrets.yaml)
+├── backend/
+│   ├── deployment.yaml      → Deploy del backend Spring Boot
+│   └── service.yaml         → ClusterIP service porta 8080
+├── frontend/
+│   ├── deployment.yaml      → Deploy del frontend Angular/Nginx
+│   ├── service.yaml         → ClusterIP service porta 80
+│   ├── ingress.yaml         → Ingress Nginx (routing / e /api)
+│   └── nginx-configmap.yaml → Configurazione Nginx
+└── postgres/
+    ├── statefulset.yaml     → PostgreSQL StatefulSet
+    ├── service.yaml         → ClusterIP service porta 5432
+    └── pvc.yaml             → PersistentVolumeClaim per i dati
+```
+
+### 1. Prepara i secrets
+
+```bash
+cp k8s/secrets.yaml.example k8s/secrets.yaml
+```
+
+Modifica `k8s/secrets.yaml` inserendo le tue credenziali reali.
+
+> `secrets.yaml` è nel `.gitignore` e non viene committato nel repository.
+
+### 2. Build delle immagini Docker
+
+Kubernetes usa `imagePullPolicy: Never`, quindi le immagini devono essere disponibili localmente nel cluster.
+
+Con **Minikube**:
+```bash
+eval $(minikube docker-env)   # su Linux/Mac
+# oppure su Windows PowerShell:
+minikube docker-env | Invoke-Expression
+
+docker build -t ticket-backend:1.0.0 ./ticketing-backend
+docker build -t ticket-frontend:1.0.0 ./ticketing-frontend
+```
+
+### 3. Deploy sul cluster
+
+```bash
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secrets.yaml
+kubectl apply -f k8s/postgres/
+kubectl apply -f k8s/backend/
+kubectl apply -f k8s/frontend/
+```
+
+### 4. Verifica lo stato dei pod
+
+```bash
+kubectl get pods -n ticket-app
+```
+
+Tutti i pod devono risultare `Running` prima di accedere all'applicazione.
+
+### 5. Accesso con Minikube
+
+```bash
+minikube addons enable ingress
+minikube tunnel
+```
+
+Poi apri **http://localhost** nel browser.
+
+### Eliminare il deploy
+
+```bash
+kubectl delete namespace ticket-app
+```
 
 ---
 

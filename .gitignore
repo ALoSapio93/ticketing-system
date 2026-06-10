@@ -2,6 +2,9 @@
 ticketing-backend/target/
 ticketing-backend/src/main/resources/application.properties
 
+# Kubernetes secrets (contengono credenziali reali)
+k8s/secrets.yaml
+
 # Claude Code local settings
 **/.claude/
 
