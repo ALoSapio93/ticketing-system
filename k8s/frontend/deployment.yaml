@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticket-frontend
+  namespace: ticket-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ticket-frontend
+  template:
+    metadata:
+      labels:
+        app: ticket-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ticket-frontend:1.0.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config-volume
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: nginx-config-volume
+          configMap:
+            name: nginx-config

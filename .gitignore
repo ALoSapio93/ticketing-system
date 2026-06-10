@@ -1,0 +1,20 @@
+# Java / Maven
+ticketing-backend/target/
+ticketing-backend/src/main/resources/application.properties
+
+# Claude Code local settings
+**/.claude/
+
+# Node / Angular
+ticketing-frontend/node_modules/
+ticketing-frontend/dist/
+ticketing-frontend/.angular/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
