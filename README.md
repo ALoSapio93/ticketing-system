@@ -1,8 +1,13 @@
+
 # 🎫 TicketFlow - Sistema di Ticketing Aziendale
 
 Sistema completo per la gestione dei ticket interni aziendali.
 
 ---
+## DEMO (Screen)
+<img width="1912" height="837" alt="Screenshot 2026-06-10 112019" src="https://github.com/user-attachments/assets/7bb0220d-ff67-46ec-b887-9e5f71825b06" />
+<img width="1907" height="848" alt="Screenshot 2026-06-10 111836" src="https://github.com/user-attachments/assets/6f6b3aa9-c03c-4276-9c83-6b4821d2e0cd" />
+<img width="1902" height="857" alt="Screenshot 2026-06-10 111808" src="https://github.com/user-attachments/assets/44ce03a7-2211-4ec3-96d9-e27aadf8a82c" />
 
 ## 📦 Struttura del Progetto
 
